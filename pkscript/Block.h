@@ -33,6 +33,8 @@ enum OpCode : uint8_t
     //OP_GREATER_EQUAL,
     //OP_LESS_EQUAL,
     //OP_CONSTANT_LONG_LONG, //add to support 64-byte index locations, highly unlikely this will ever be needed
+    OP_PRINT,
+    OP_POP,
     OP_RETURN,
 };
 

@@ -1,11 +1,16 @@
 #pragma once
 
 #include "Block.h"
+#include <unordered_map>
+#include <unordered_set>
+
 struct VM
 {
 	Block* block;
 	uint8_t* ip;
 	ValueArray stack;
+	Obj* objects;
+	std::unordered_map<uint64_t, ObjString*> strings;
 };
 
 enum InterpretResult : uint8_t
@@ -14,6 +19,8 @@ enum InterpretResult : uint8_t
 	INTERPRET_COMPILE_ERROR,
 	INTERPRET_RUNTIME_ERROR
 };
+
+VM* currentVM();
 
 VM createVM();
 

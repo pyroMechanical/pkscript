@@ -11,16 +11,26 @@ enum ObjType
 struct Obj
 {
 	ObjType type;
+	Obj* next;
 };
 
 struct ObjString
 {
 	Obj obj;
-	int length;
-	char* chars;
+	std::string string;
+	size_t hash;
+
+	ObjString(std::string chr_string)
+		: string(chr_string) 
+	{
+		hash = std::hash<std::string>{}(string);
+	}
 };
 
+ObjString* takeString(std::string chr_string);
 ObjString* copyString(const char* chars, int length);
+
+void printObject(Value value);
 
 static inline bool isObjType(Value value, ObjType type)
 {
@@ -32,4 +42,4 @@ static inline bool isObjType(Value value, ObjType type)
 #define IS_STRING(value) isObjType(value, OBJ_STRING)
 
 #define AS_STRING(value) ((ObjString*)AS_OBJ(value))
-#define AS_CSTRING(value) (((ObjString*)AS_OBJ(value))->chars.c_str())
+#define AS_CSTRING(value) (((ObjString*)AS_OBJ(value))->string.c_str())

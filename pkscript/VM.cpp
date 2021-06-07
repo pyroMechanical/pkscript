@@ -1,20 +1,31 @@
 #include "pkscript.h"
-#include "Compiler.h"
-#include "Debug.h"
 #include "VM.h"
+#include "Compiler.h"
+#include "Memory.h"
+#include "Debug.h"
+#include "Object.h"
 
 #include <stdarg.h>
+
+VM* activeVM;
+
+VM* currentVM()
+{
+	return activeVM;
+}
 
 VM createVM()
 {
 	VM vm;
 	vm.stack.clear();
+	vm.strings.clear();
+	vm.objects = nullptr;
 	return vm;
 }
 
 void freeVM(VM* vm)
 {
-
+	freeObjects();
 }
 
 static void runtimeError(VM* vm, const char* format...)
@@ -34,6 +45,7 @@ static void runtimeError(VM* vm, const char* format...)
 
 InterpretResult interpret(VM* vm, const char* source)
 {
+	activeVM = vm;
 	Block block;
 	if (!compile(vm, source, &block))
 	{
@@ -47,9 +59,31 @@ InterpretResult interpret(VM* vm, const char* source)
 	return INTERPRET_OK;
 }
 
+static Value popStack(VM* vm)
+{
+	Value val = vm->stack.back();
+	vm->stack.pop_back();
+	return val;
+}
+
 static Value peek(VM* vm, int distance)
 {
 	return vm->stack[vm->stack.size() -1 - distance];
+}
+
+static void concatenate(VM* vm)
+{
+	ObjString* b = AS_STRING(vm->stack.back());
+	vm->stack.pop_back();
+	ObjString* a = AS_STRING(vm->stack.back());
+	vm->stack.pop_back();
+
+	std::string chr_string;
+	chr_string += a->string;
+	chr_string += b->string;
+
+	ObjString* result = takeString(chr_string);
+	vm->stack.push_back(createObject((Obj*)result));
 }
 
 static InterpretResult run(VM* vm)
@@ -62,10 +96,8 @@ do { \
  		runtimeError(vm, "Operands must be numbers."); \
 		return INTERPRET_RUNTIME_ERROR; \
 	} \
-	double b = AS_NUMBER(vm->stack.back()); \
-	vm->stack.pop_back(); \
-	double a = AS_NUMBER(vm->stack.back()); \
-	vm->stack.pop_back(); \
+	double b = AS_NUMBER(popStack(vm)); \
+	double a = AS_NUMBER(popStack(vm)); \
 	vm->stack.push_back(valueType(a op b)); \
 } while (false)
 
@@ -108,11 +140,10 @@ do { \
 			case OP_TRUE: vm->stack.push_back(createBool(true)); break;
 			case OP_NIL: vm->stack.push_back(createNil()); break;
 			case OP_NOT: vm->stack.back() = createBool(isFalsey(vm->stack.back())); break;
+			case OP_POP: popStack(vm); break;
 			case OP_EQUAL:
-				Value b = vm->stack.back();
-				vm->stack.pop_back();
-				Value a = vm->stack.back();
-				vm->stack.pop_back();
+				Value b = popStack(vm);
+				Value a = popStack(vm);
 				vm->stack.push_back(createBool(valuesEqual(a, b)));
 				break;
 			case OP_GREATER: BINARY_OP(createBool, > ); break;
@@ -128,14 +159,33 @@ do { \
 				n.as.number = -n.as.number;
 				break;
 			}
-			case OP_ADD: BINARY_OP(createNumber, +); break;
+			case OP_ADD:
+			{
+				if (IS_STRING(peek(vm, 0)) && IS_STRING(peek(vm, 1)))
+				{
+					concatenate(vm);
+				}
+				else if (IS_NUMBER(peek(vm, 0)) && IS_NUMBER(peek(vm, 0)))
+				{
+					double b = AS_NUMBER(popStack(vm));
+					double a = AS_NUMBER(popStack(vm));
+
+					vm->stack.push_back(createNumber(a + b));
+				}
+				else
+				{
+					runtimeError(vm, "Operands must be two numbers or two strings.");
+					return INTERPRET_RUNTIME_ERROR;
+				}
+
+				break;
+			}
 			case OP_MULTIPLY: BINARY_OP(createNumber, *); break;
 			case OP_DIVIDE: BINARY_OP(createNumber, /); break;
+			case OP_PRINT: printValue(popStack(vm)); printf("\n"); break;
 			case OP_RETURN:
 			{
-				printValue(vm->stack.back());
-				vm->stack.pop_back();
-				printf("\n");
+				// Exit interpreter
 				return INTERPRET_OK;
 			}
 		}
