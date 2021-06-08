@@ -1,25 +1,25 @@
 #include "pkscript.h"
 #include "Debug.h"
 
-void disassembleBlock(Block* block, const char* name)
+void disassembleChunk(Chunk* chunk, const char* name)
 {
     printf("== %s ==\n", name);
-    for (size_t offset = 0; offset < block->code.size();)
+    for (size_t offset = 0; offset < chunk->code.size();)
     {
-        offset = disassembleInstruction(block, offset);
+        offset = disassembleInstruction(chunk, offset);
     }
 }
 
-size_t disassembleInstruction(Block* block, size_t offset)
+size_t disassembleInstruction(Chunk* chunk, size_t offset)
 {
     printf("%04d ", offset);
 
-    if (offset > 0 && getLine(block, offset) == getLine(block, offset -1 ))
+    if (offset > 0 && getLine(chunk, offset) == getLine(chunk, offset -1 ))
         printf("    | ");
     else
-        printf("%4d ", getLine(block, offset));
+        printf("%4d ", getLine(chunk, offset));
 
-    uint8_t instruction = block->code[offset];
+    uint8_t instruction = chunk->code[offset];
     uint8_t byteLength = 0;
     switch (instruction)
     {
@@ -37,9 +37,24 @@ size_t disassembleInstruction(Block* block, size_t offset)
     case OP_DIVIDE: return simpleInstruction("OP_DIVIDE", offset);
     case OP_PRINT: return simpleInstruction("OP_PRINT", offset);
     case OP_RETURN: return simpleInstruction("OP_RETURN", offset);
-    case OP_CONSTANT_SHORT: byteLength = 1; return constantInstruction("OP_CONSTANT_SHORT", block, offset, byteLength);
-    case OP_CONSTANT: byteLength = 2; return constantInstruction("OP_CONSTANT", block, offset, byteLength);
-    case OP_CONSTANT_LONG: byteLength = 4; return constantInstruction("OP_CONSTANT_LONG", block, offset, byteLength);
+    case OP_CONSTANT_SHORT: byteLength = 1; return constantInstruction("OP_CONSTANT_SHORT", chunk, offset, byteLength);
+    case OP_CONSTANT: byteLength = 2; return constantInstruction("OP_CONSTANT", chunk, offset, byteLength);
+    case OP_CONSTANT_LONG: byteLength = 4; return constantInstruction("OP_CONSTANT_LONG", chunk, offset, byteLength);
+    case OP_DEF_GLOBAL_SHORT: byteLength = 1; return constantInstruction("OP_GLOBAL_SHORT", chunk, offset, byteLength);
+    case OP_DEF_GLOBAL: byteLength = 2; return constantInstruction("OP_GLOBAL", chunk, offset, byteLength);
+    case OP_DEF_GLOBAL_LONG: byteLength = 4; return constantInstruction("OP_GLOBAL_LONG", chunk, offset, byteLength);
+    case OP_GET_GLOBAL_SHORT: byteLength = 1; return constantInstruction("OP_GET_GLOBAL_SHORT", chunk, offset, byteLength);
+    case OP_GET_GLOBAL: byteLength = 2; return constantInstruction("OP_GET_GLOBAL", chunk, offset, byteLength);
+    case OP_GET_GLOBAL_LONG: byteLength = 4; return constantInstruction("OP_GET_GLOBAL_LONG", chunk, offset, byteLength);
+    case OP_SET_GLOBAL_SHORT: byteLength = 1; return constantInstruction("OP_SET_GLOBAL_SHORT", chunk, offset, byteLength);
+    case OP_SET_GLOBAL: byteLength = 2; return constantInstruction("OP_SET_GLOBAL", chunk, offset, byteLength);
+    case OP_SET_GLOBAL_LONG: byteLength = 4; return constantInstruction("OP_SET_GLOBAL_LONG", chunk, offset, byteLength);
+    case OP_GET_LOCAL_SHORT: byteLength = 1; return constantInstruction("OP_GET_LOCAL_SHORT", chunk, offset, byteLength);
+    case OP_GET_LOCAL: byteLength = 2; return constantInstruction("OP_GET_LOCAL", chunk, offset, byteLength);
+    case OP_GET_LOCAL_LONG: byteLength = 4; return constantInstruction("OP_GET_LOCAL_LONG", chunk, offset, byteLength);
+    case OP_SET_LOCAL_SHORT: byteLength = 1; return constantInstruction("OP_SET_LOCAL_SHORT", chunk, offset, byteLength);
+    case OP_SET_LOCAL: byteLength = 2; return constantInstruction("OP_SET_LOCAL", chunk, offset, byteLength);
+    case OP_SET_LOCAL_LONG: byteLength = 4; return constantInstruction("OP_SET_LOCAL_LONG", chunk, offset, byteLength);
     default:
         printf("Unknown Opcode %d\n", instruction);
         return offset + 1;
@@ -52,20 +67,20 @@ static size_t simpleInstruction(const char* name, size_t offset)
     return offset + 1;
 }
 
-static size_t constantInstruction(const char* name, Block* block, size_t offset, uint8_t bytes)
+static size_t constantInstruction(const char* name, Chunk* chunk, size_t offset, uint8_t bytes)
 {
-    uint32_t constant = block->code[offset + 1];
+    uint32_t constant = chunk->code[offset + 1];
     if (bytes > 1)
     {
-        constant = (constant << 8) + block->code[offset + 2];
+        constant = (constant << 8) + chunk->code[offset + 2];
         if(bytes == 4)
         {
-            constant = (constant << 8) + block->code[offset + 3];
-            constant = (constant << 8) + block->code[offset + 4];
+            constant = (constant << 8) + chunk->code[offset + 3];
+            constant = (constant << 8) + chunk->code[offset + 4];
         }
     }
     printf("%-16s %4d '", name, constant);
-    printValue(block->constants[constant]);
+    printValue(chunk->constants[constant]);
     printf("'\n");
     return offset + 1 + bytes;
 }

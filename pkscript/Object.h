@@ -18,13 +18,9 @@ struct ObjString
 {
 	Obj obj;
 	std::string string;
-	size_t hash;
 
 	ObjString(std::string chr_string)
-		: string(chr_string) 
-	{
-		hash = std::hash<std::string>{}(string);
-	}
+		: string(chr_string) {}
 };
 
 ObjString* takeString(std::string chr_string);

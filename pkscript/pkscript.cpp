@@ -1,6 +1,6 @@
 #include "pkscript.h"
 
-#include "Block.h"
+#include "Chunk.h"
 #include "Debug.h"
 #include "VM.h"
 
@@ -8,11 +8,27 @@ static void repl(VM* vm)
 {
     std::cout << "type 'exit' to exit REPL\n";
     std::string inputLine;
+    std::string command;
     do
     {
         std::getline(std::cin, inputLine);
+        if (inputLine == "$")
+        {
+            inputLine.clear();
+            while (inputLine != "exec" && inputLine != "exit")
+            {
+                command.append(inputLine);
+                command.append("\n");
+                std::getline(std::cin, inputLine);
+            }
+        }
+        else
+        {
+            command = inputLine;
+        }
 
-        interpret(vm, inputLine.c_str());
+        interpret(vm, command.c_str());
+        command.clear();
     } while (inputLine != "exit");
 }
 

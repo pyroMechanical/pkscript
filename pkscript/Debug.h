@@ -1,12 +1,12 @@
 #pragma once
 
-#include "Block.h"
+#include "Chunk.h"
 #include <string>
 
-void disassembleBlock(Block* block, const char* name);
+void disassembleChunk(Chunk* chunk, const char* name);
 
-size_t disassembleInstruction(Block* block, size_t offset);
+size_t disassembleInstruction(Chunk* chunk, size_t offset);
 
 static size_t simpleInstruction(const char* name, size_t offset);
 
-static size_t constantInstruction(const char* name, Block* block, size_t offset, uint8_t bytes);
+static size_t constantInstruction(const char* name, Chunk* chunk, size_t offset, uint8_t bytes);

@@ -18,15 +18,14 @@ static ObjString* allocateString(std::string chr_string)
 	ObjString* stringObj = new ObjString(chr_string);
 	allocateObject((Obj*)stringObj, OBJ_STRING);
 	VM* vm = currentVM();
-	vm->strings.emplace(std::make_pair(stringObj->hash, stringObj));
+	vm->strings.emplace(std::make_pair(stringObj->string, stringObj));
 	return stringObj;
 }
 
 ObjString* takeString(std::string chr_string)
 {
 	VM* vm = currentVM();
-	auto hash = std::hash<std::string>{}(chr_string);
-	auto val = vm->strings.find(hash);
+	auto val = vm->strings.find(chr_string);
 	if (val != vm->strings.end())
 		return val->second;
 	return allocateString(chr_string);
@@ -36,8 +35,7 @@ ObjString* copyString(const char* chars, int length)
 {
 	std::string chr_string(chars, length);
 	VM* vm = currentVM();
-	auto hash = std::hash<std::string>{}(chr_string);
-	auto val = vm->strings.find(hash);
+	auto val = vm->strings.find(chr_string);
 	if (val != vm->strings.end())
 		return val->second;
 	return allocateString(chr_string);

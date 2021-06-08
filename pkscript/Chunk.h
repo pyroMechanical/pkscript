@@ -7,7 +7,7 @@
 
 #define BYTE_MASK 0x000000FF;
 
-struct Block
+struct Chunk
 {
     std::vector<uint8_t> code;
     std::vector<std::pair<int, int>> lines;
@@ -19,6 +19,21 @@ enum OpCode : uint8_t
     OP_CONSTANT_SHORT,
     OP_CONSTANT,
     OP_CONSTANT_LONG,
+    OP_DEF_GLOBAL_SHORT,
+    OP_DEF_GLOBAL,
+    OP_DEF_GLOBAL_LONG,
+    OP_GET_GLOBAL_SHORT,
+    OP_GET_GLOBAL,
+    OP_GET_GLOBAL_LONG,
+    OP_SET_GLOBAL_SHORT,
+    OP_SET_GLOBAL,
+    OP_SET_GLOBAL_LONG,
+    OP_GET_LOCAL_SHORT,
+    OP_GET_LOCAL,
+    OP_GET_LOCAL_LONG,
+    OP_SET_LOCAL_SHORT,
+    OP_SET_LOCAL,
+    OP_SET_LOCAL_LONG,
     OP_TRUE,
     OP_FALSE,
     OP_NIL,
@@ -38,10 +53,10 @@ enum OpCode : uint8_t
     OP_RETURN,
 };
 
-int addConstant(Block* block, Value value);
+uint32_t addConstant(Chunk* chunk, Value value);
 
-void writeBlock(Block* block, uint8_t byte, int line);
+void writeChunk(Chunk* chunk, uint8_t byte, int line);
 
-void writeConstant(Block* block, Value value, int line);
+uint32_t writeConstant(Chunk* chunk, Value value, int line);
 
-int getLine(Block* block, size_t offset);
+int getLine(Chunk* chunk, size_t offset);

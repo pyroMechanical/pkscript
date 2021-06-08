@@ -18,7 +18,7 @@ VM createVM()
 {
 	VM vm;
 	vm.stack.clear();
-	vm.strings.clear();
+	vm.globals.clear();
 	vm.objects = nullptr;
 	return vm;
 }
@@ -36,8 +36,8 @@ static void runtimeError(VM* vm, const char* format...)
 	va_end(args);
 	fputs("\n", stderr);
 
-	size_t instruction = vm->ip - vm->block->code.data() - 1;
-	int line = getLine(vm->block, instruction);
+	size_t instruction = vm->ip - vm->chunk->code.data() - 1;
+	int line = getLine(vm->chunk, instruction);
 
 	fprintf(stderr, "[line &d] in script\n", line);
 	vm->stack.clear();
@@ -46,14 +46,14 @@ static void runtimeError(VM* vm, const char* format...)
 InterpretResult interpret(VM* vm, const char* source)
 {
 	activeVM = vm;
-	Block block;
-	if (!compile(vm, source, &block))
+	Chunk chunk;
+	if (!compile(vm, source, &chunk))
 	{
 		return INTERPRET_COMPILE_ERROR;
 	}
 
-	vm->block = &block;
-	vm->ip = &vm->block->code[0];
+	vm->chunk = &chunk;
+	vm->ip = &vm->chunk->code[0];
 
 	InterpretResult result = run(vm);
 	return INTERPRET_OK;
@@ -88,7 +88,8 @@ static void concatenate(VM* vm)
 
 static InterpretResult run(VM* vm)
 {
-#define READ_CONSTANT(bytes) ( vm->block->constants[readbytes(vm, bytes)])
+#define READ_CONSTANT(bytes) ( vm->chunk->constants[readbytes(vm, bytes)])
+#define READ_VARIABLE(bytes) ( vm->stack[readbytes(vm, bytes)])
 #define BINARY_OP(valueType, op) \
 do { \
 	if (!IS_NUMBER(peek(vm, 0)) || !IS_NUMBER(peek(vm, 1))) \
@@ -113,7 +114,7 @@ do { \
 			printf("]");
 		}
 		printf("\n");
-		disassembleInstruction(vm->block, (size_t) (vm->ip - &(vm->block->code[0])));
+		disassembleInstruction(vm->chunk, (size_t) (vm->ip - &(vm->chunk->code[0])));
 #endif
 		uint8_t instruction = readbytes(vm, 1);
 		switch (instruction)
@@ -134,6 +135,135 @@ do { \
 			{
 				Value constant = READ_CONSTANT(4);
 				vm->stack.push_back(constant);
+				break;
+			}
+			case OP_DEF_GLOBAL_SHORT:
+			{
+				ObjString* name = AS_STRING(READ_CONSTANT(1));
+				vm->globals.insert_or_assign(name->string, peek(vm, 0));
+				popStack(vm);
+				break;
+			}
+			case OP_DEF_GLOBAL:
+			{
+				ObjString* name = AS_STRING(READ_CONSTANT(2));
+				vm->globals.insert_or_assign(name->string, peek(vm, 0));
+				popStack(vm);
+				break;
+			}
+			case OP_DEF_GLOBAL_LONG:
+			{
+				ObjString* name = AS_STRING(READ_CONSTANT(4));
+				vm->globals.insert_or_assign(name->string, peek(vm, 0));
+				popStack(vm);
+				break;
+			}
+			case OP_GET_GLOBAL_SHORT:
+			{
+				ObjString* name = AS_STRING(READ_CONSTANT(1));
+				auto value = vm->globals.find(name->string);
+				if(value == vm->globals.end())
+				{
+					runtimeError(vm, "Undefined variable '%s'.", name->string.c_str());
+					return INTERPRET_RUNTIME_ERROR;
+				}
+				vm->stack.push_back(value->second);
+				break;
+			}
+			case OP_GET_GLOBAL:
+			{
+				ObjString* name = AS_STRING(READ_CONSTANT(2));
+				auto value = vm->globals.find(name->string);
+				if (value == vm->globals.end())
+				{
+					runtimeError(vm, "Undefined variable '%s'.", name->string.c_str());
+					return INTERPRET_RUNTIME_ERROR;
+				}
+				vm->stack.push_back(value->second);
+				break;
+			}
+			case OP_GET_GLOBAL_LONG:
+			{
+				ObjString* name = AS_STRING(READ_CONSTANT(4));
+				auto value = vm->globals.find(name->string);
+				if (value == vm->globals.end())
+				{
+					runtimeError(vm, "Undefined variable '%s'.", name->string.c_str());
+					return INTERPRET_RUNTIME_ERROR;
+				}
+				vm->stack.push_back(value->second);
+				break;
+			}
+			case OP_SET_GLOBAL_SHORT:
+			{
+				ObjString* name = AS_STRING(READ_CONSTANT(1));
+				auto value = vm->globals.find(name->string);
+				if (value == vm->globals.end())
+				{
+					runtimeError(vm, "Undefined variable '%s'.", name->string.c_str());
+					return INTERPRET_RUNTIME_ERROR;
+				}
+				vm->globals.insert_or_assign(name->string, peek(vm, 0));
+				break;
+			}
+			case OP_SET_GLOBAL:
+			{
+				ObjString* name = AS_STRING(READ_CONSTANT(2));
+				auto value = vm->globals.find(name->string);
+				if (value == vm->globals.end())
+				{
+					runtimeError(vm, "Undefined variable '%s'.", name->string.c_str());
+					return INTERPRET_RUNTIME_ERROR;
+				}
+				vm->globals.insert_or_assign(name->string, peek(vm, 0));
+				break;
+			}
+			case OP_SET_GLOBAL_LONG:
+			{
+				ObjString* name = AS_STRING(READ_CONSTANT(4));
+				auto value = vm->globals.find(name->string);
+				if (value == vm->globals.end())
+				{
+					runtimeError(vm, "Undefined variable '%s'.", name->string.c_str());
+					return INTERPRET_RUNTIME_ERROR;
+				}
+				vm->globals.insert_or_assign(name->string, peek(vm, 0));
+				break;
+			}
+			case OP_GET_LOCAL_SHORT:
+			{
+				Value constant = READ_VARIABLE(1);
+				vm->stack.push_back(constant);
+				break;
+			}
+			case OP_GET_LOCAL:
+			{
+				Value constant = READ_VARIABLE(2);
+				vm->stack.push_back(constant);
+				break;
+			}
+			case OP_GET_LOCAL_LONG:
+			{
+				Value constant = READ_VARIABLE(4);
+				vm->stack.push_back(constant);
+				break;
+			}
+			case OP_SET_LOCAL_SHORT:
+			{
+				uint32_t constant = readbytes(vm, 1);
+				vm->stack[constant] = peek(vm, 0);
+				break;
+			}
+			case OP_SET_LOCAL:
+			{
+				uint32_t constant = readbytes(vm, 2);
+				vm->stack[constant] = peek(vm, 0);
+				break;
+			}
+			case OP_SET_LOCAL_LONG:
+			{
+				uint32_t constant = readbytes(vm, 4);
+				vm->stack[constant] = peek(vm, 0);
 				break;
 			}
 			case OP_FALSE: vm->stack.push_back(createBool(false)); break;
@@ -177,7 +307,6 @@ do { \
 					runtimeError(vm, "Operands must be two numbers or two strings.");
 					return INTERPRET_RUNTIME_ERROR;
 				}
-
 				break;
 			}
 			case OP_MULTIPLY: BINARY_OP(createNumber, *); break;
@@ -191,6 +320,7 @@ do { \
 		}
 	}
 
+#undef READ_VARIABLE;
 #undef READ_CONSTANT
 #undef BINARY_OP
 }

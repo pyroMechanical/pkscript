@@ -1,16 +1,17 @@
 #pragma once
 
-#include "Block.h"
+#include "Chunk.h"
 #include <unordered_map>
 #include <unordered_set>
 
 struct VM
 {
-	Block* block;
+	Chunk* chunk;
 	uint8_t* ip;
 	ValueArray stack;
 	Obj* objects;
-	std::unordered_map<uint64_t, ObjString*> strings;
+	std::unordered_map<std::string, Value> globals;
+	std::unordered_map<std::string, ObjString*> strings;
 };
 
 enum InterpretResult : uint8_t
@@ -26,7 +27,7 @@ VM createVM();
 
 void freeVM(VM* vm);
 
-InterpretResult interpret(VM* vm, Block* block);
+InterpretResult interpret(VM* vm, Chunk* chunk);
 InterpretResult interpret(VM* vm, const char* source);
 
 InterpretResult run(VM* vm);
