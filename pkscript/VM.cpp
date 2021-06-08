@@ -312,6 +312,31 @@ do { \
 			case OP_MULTIPLY: BINARY_OP(createNumber, *); break;
 			case OP_DIVIDE: BINARY_OP(createNumber, /); break;
 			case OP_PRINT: printValue(popStack(vm)); printf("\n"); break;
+			case OP_JUMP:
+			{
+				uint16_t offset = readbytes(vm, 2);
+				vm->ip += offset;
+				break;
+			}
+			case OP_JUMP_BACK:
+			{
+				uint16_t offset = readbytes(vm, 2);
+				vm->ip -= offset;
+				break;
+			}
+			case OP_JUMP_IF_TRUE:
+			{
+				uint16_t offset = readbytes(vm, 2);
+				if (!isFalsey(peek(vm, 0))) vm->ip += offset;
+				break;
+			}
+			case OP_JUMP_IF_FALSE:
+			{
+				uint16_t offset = readbytes(vm, 2);
+				if (isFalsey(peek(vm, 0))) vm->ip += offset;
+				break;
+
+			}
 			case OP_RETURN:
 			{
 				// Exit interpreter

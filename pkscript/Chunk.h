@@ -45,6 +45,10 @@ enum OpCode : uint8_t
     OP_EQUAL,
     OP_GREATER,
     OP_LESS,
+    OP_JUMP,
+    OP_JUMP_BACK,
+    OP_JUMP_IF_TRUE,
+    OP_JUMP_IF_FALSE,
     //OP_GREATER_EQUAL,
     //OP_LESS_EQUAL,
     //OP_CONSTANT_LONG_LONG, //add to support 64-byte index locations, highly unlikely this will ever be needed

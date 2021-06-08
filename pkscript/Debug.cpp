@@ -36,6 +36,10 @@ size_t disassembleInstruction(Chunk* chunk, size_t offset)
     case OP_MULTIPLY: return simpleInstruction("OP_MULTIPLY", offset);
     case OP_DIVIDE: return simpleInstruction("OP_DIVIDE", offset);
     case OP_PRINT: return simpleInstruction("OP_PRINT", offset);
+    case OP_JUMP: return jumpInstruction("OP_JUMP", 1, chunk, offset);
+    case OP_JUMP_BACK: return jumpInstruction("OP_JUMP_BACK", -1, chunk, offset);
+    case OP_JUMP_IF_TRUE: return jumpInstruction("OP_JUMP_IF_TRUE", 1, chunk, offset);
+    case OP_JUMP_IF_FALSE: return jumpInstruction("OP_JUMP_IF_FALSE", 1, chunk, offset);
     case OP_RETURN: return simpleInstruction("OP_RETURN", offset);
     case OP_CONSTANT_SHORT: byteLength = 1; return constantInstruction("OP_CONSTANT_SHORT", chunk, offset, byteLength);
     case OP_CONSTANT: byteLength = 2; return constantInstruction("OP_CONSTANT", chunk, offset, byteLength);
@@ -65,6 +69,14 @@ static size_t simpleInstruction(const char* name, size_t offset)
 {
     printf("%s\n", name);
     return offset + 1;
+}
+
+static size_t jumpInstruction(const char* name, int sign, Chunk* chunk, size_t offset)
+{
+    uint16_t jump = (uint16_t)chunk->code[offset + 1];
+    jump = (jump << 8) + chunk->code[offset + 2];
+    printf("%-16s %04d -> %04d\n", name, (int)offset, (int)(offset + 3 + sign * jump));
+    return offset + 3;
 }
 
 static size_t constantInstruction(const char* name, Chunk* chunk, size_t offset, uint8_t bytes)
